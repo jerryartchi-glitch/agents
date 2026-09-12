@@ -232,22 +232,19 @@ const GOOGLE_SCRIPT_URL =
 
 function sendGPS(agent, button) {
 
+    // Защита от повторного нажатия пока идет процесс
+    if (button.classList.contains("loading")) return;
+
     // Меняем состояние кнопки
     button.classList.remove("success", "error");
     button.classList.add("loading");
-
     button.innerHTML = "⏳ Определяем...";
 
 
     // Проверяем поддержку GPS
     if (!navigator.geolocation) {
-
-        showError(
-            "Ваш браузер не поддерживает определение местоположения"
-        );
-
+        showError("Ваш браузер не поддерживает определение местоположение");
         resetButton(button, agent);
-
         return;
     }
 
@@ -257,22 +254,11 @@ function sendGPS(agent, button) {
 
         function(position) {
 
-            const latitude =
-                position.coords.latitude;
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+            const time = new Date().toLocaleString("ru-RU");
 
-            const longitude =
-                position.coords.longitude;
-
-            const accuracy =
-                position.coords.accuracy;
-
-
-            // Время телефона
-            const time =
-                new Date().toLocaleString("ru-RU");
-
-
-            // Данные для Google Apps Script
             const data = {
                 agent: agent,
                 latitude: latitude,
@@ -281,12 +267,7 @@ function sendGPS(agent, button) {
                 time: time
             };
 
-
-            /*
-             * Отправляем данные в режиме no-cors,
-             * чтобы обойти блокировку CORS браузера
-             */
-
+            // Отправляем данные в Google Apps Script
             fetch(
                 GOOGLE_SCRIPT_URL,
                 {
@@ -297,91 +278,43 @@ function sendGPS(agent, button) {
                     },
                     body: JSON.stringify(data)
                 }
-            )
-            .then(function() {
+            );
 
+            // Небольшая плавная задержка для корректой смены статуса кнопки
+            setTimeout(function() {
                 button.classList.remove("loading");
                 button.classList.add("success");
-
-                button.innerHTML =
-                    "✅ " + agent;
-
+                button.innerHTML = "✅ " + agent;
 
                 // Показываем результат
-                showSuccess(
-                    agent,
-                    latitude,
-                    longitude,
-                    accuracy,
-                    time
-                );
-
-            })
-            .catch(function(error) {
-
-                console.error(error);
-
-                button.classList.remove("loading");
-                button.classList.add("error");
-
-                button.innerHTML =
-                    "❌ " + agent;
-
-
-                showError(
-                    "Не удалось отправить координаты"
-                );
-
-            });
+                showSuccess(agent, latitude, longitude, accuracy, time);
+            }, 600);
 
         },
-
 
         function(error) {
 
             button.classList.remove("loading");
             button.classList.add("error");
+            button.innerHTML = "❌ " + agent;
 
-            button.innerHTML =
-                "❌ " + agent;
-
-
-            let message =
-                "Не удалось определить местоположение";
-
+            let message = "Не удалось определить местоположение";
 
             if (error.code === 1) {
-
-                message =
-                    "Вы запретили доступ к местоположению. Разрешите GPS для этого сайта.";
-
+                message = "Вы запретили доступ к местоположению. Разрешите GPS для этого сайта.";
+            } else if (error.code === 2) {
+                message = "Телефон не смог определить местоположение.";
+            } else if (error.code === 3) {
+                message = "GPS отвечает слишком долго. Попробуйте ещё раз.";
             }
-
-            else if (error.code === 2) {
-
-                message =
-                    "Телефон не смог определить местоположение.";
-
-            }
-
-            else if (error.code === 3) {
-
-                message =
-                    "GPS отвечает слишком долго. Попробуйте ещё раз.";
-
-            }
-
 
             showError(message);
 
         },
 
-
         {
             enableHighAccuracy: true,
-
             timeout: 20000,
-
             maximumAge: 0
         }
 
@@ -394,64 +327,25 @@ function sendGPS(agent, button) {
    УСПЕШНАЯ ОТПРАВКА
    ===================================================== */
 
-function showSuccess(
-    agent,
-    latitude,
-    longitude,
-    accuracy,
-    time
-) {
+function showSuccess(agent, latitude, longitude, accuracy, time) {
 
-    const status =
-        document.getElementById("status");
-
-    const statusTitle =
-        document.getElementById("statusTitle");
-
-    const coordinates =
-        document.getElementById("coordinates");
-
-    const mapLink =
-        document.getElementById("mapLink");
-
+    const status = document.getElementById("status");
+    const statusTitle = document.getElementById("statusTitle");
+    const coordinates = document.getElementById("coordinates");
+    const mapLink = document.getElementById("mapLink");
 
     status.classList.add("show");
 
-
-    statusTitle.innerHTML =
-        "✅ " + agent +
-        " — местоположение отправлено";
-
+    statusTitle.innerHTML = "✅ " + agent + " — местоположение отправлено";
 
     coordinates.innerHTML =
+        "📍 Широта: <b>" + latitude.toFixed(6) + "</b><br>" +
+        "📍 Долгота: <b>" + longitude.toFixed(6) + "</b><br>" +
+        "🎯 Точность: <b>" + Math.round(accuracy) + " м</b><br>" +
+        "🕐 Время: <b>" + time + "</b>";
 
-        "📍 Широта: <b>" +
-        latitude.toFixed(6) +
-        "</b><br>" +
-
-        "📍 Долгота: <b>" +
-        longitude.toFixed(6) +
-        "</b><br>" +
-
-        "🎯 Точность: <b>" +
-        Math.round(accuracy) +
-        " м</b><br>" +
-
-        "🕐 Время: <b>" +
-        time +
-        "</b>";
-
-
-    /*
-     * Ссылка на Google Maps
-     */
-
-    mapLink.href =
-        "https://www.google.com/maps?q=" +
-        latitude +
-        "," +
-        longitude;
-
+    mapLink.href = "https://www.google.com/maps?q=" + latitude + "," + longitude;
+    mapLink.style.display = "inline-block";
 }
 
 
@@ -461,32 +355,15 @@ function showSuccess(
 
 function showError(message) {
 
-    const status =
-        document.getElementById("status");
-
-    const statusTitle =
-        document.getElementById("statusTitle");
-
-    const coordinates =
-        document.getElementById("coordinates");
-
-    const mapLink =
-        document.getElementById("mapLink");
-
+    const status = document.getElementById("status");
+    const statusTitle = document.getElementById("statusTitle");
+    const coordinates = document.getElementById("coordinates");
+    const mapLink = document.getElementById("mapLink");
 
     status.classList.add("show");
-
-
-    statusTitle.innerHTML =
-        "❌ Ошибка";
-
-
-    coordinates.innerHTML =
-        message;
-
-
-    mapLink.style.display =
-        "none";
+    statusTitle.innerHTML = "❌ Ошибка";
+    coordinates.innerHTML = message;
+    mapLink.style.display = "none";
 }
 
 
@@ -495,15 +372,8 @@ function showError(message) {
    ===================================================== */
 
 function resetButton(button, agent) {
-
-    button.classList.remove(
-        "loading",
-        "success",
-        "error"
-    );
-
-    button.innerHTML =
-        "📍 " + agent;
+    button.classList.remove("loading", "success", "error");
+    button.innerHTML = "📍 " + agent;
 }
 
 </script>
