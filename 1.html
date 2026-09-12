@@ -223,7 +223,7 @@
    ===================================================== */
 
 const GOOGLE_SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbxvHm2xR7c9LfYNbB98Fli2R1C_FlpBBliW8SjSXCG-adx5rXrIgdF8bbvetvtRYAB-/exec;
+    "https://script.google.com/macros/s/AKfycbxvHm2xR7c9LfYNbB98Fli2R1C_FlpBBliW8SjSXCG-adx5rXrIgdF8bbvetvtRYAB-/exec";
 
 
 /* =====================================================
@@ -283,21 +283,22 @@ function sendGPS(agent, button) {
 
 
             /*
-             * Отправляем данные
-             * в Google Apps Script
+             * Отправляем данные в режиме no-cors,
+             * чтобы обойти блокировку CORS браузера
              */
 
             fetch(
                 GOOGLE_SCRIPT_URL,
                 {
                     method: "POST",
+                    mode: "no-cors",
+                    headers: {
+                        "Content-Type": "text/plain;charset=utf-8"
+                    },
                     body: JSON.stringify(data)
                 }
             )
-            .then(function(response) {
-                return response.json();
-            })
-            .then(function(result) {
+            .then(function() {
 
                 button.classList.remove("loading");
                 button.classList.add("success");
