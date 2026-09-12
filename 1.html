@@ -223,7 +223,7 @@
    ===================================================== */
 
 const GOOGLE_SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbzBVEmdcjVQYkTirpGyGWSC4UXMqV7SGafiru4c2AVDY6y8_nGfP-GHgENQVqTrrYQ/exec";
+    "https://script.google.com/macros/s/AKfycbxvHm2xR7c9LfYNbB98Fli2R1C_FlpBBliW8SjSXCG-adx5rXrIgdF8bbvetvtRYAB-/exec;
 
 
 /* =====================================================
@@ -274,17 +274,11 @@ function sendGPS(agent, button) {
 
             // Данные для Google Apps Script
             const data = {
-
                 agent: agent,
-
                 latitude: latitude,
-
                 longitude: longitude,
-
                 accuracy: accuracy,
-
                 time: time
-
             };
 
 
@@ -297,18 +291,13 @@ function sendGPS(agent, button) {
                 GOOGLE_SCRIPT_URL,
                 {
                     method: "POST",
-
-                    mode: "no-cors",
-
-                    headers: {
-                        "Content-Type":
-                            "text/plain;charset=utf-8"
-                    },
-
                     body: JSON.stringify(data)
                 }
             )
-            .then(function() {
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(result) {
 
                 button.classList.remove("loading");
                 button.classList.add("success");
